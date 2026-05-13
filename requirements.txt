@@ -1,0 +1,11 @@
+pandas>=2.0
+numpy>=1.24
+requests>=2.31
+statsmodels>=0.14
+prophet>=1.1.5
+matplotlib>=3.7
+plotly>=5.18
+# Optional, for LSTM model — uncomment if you want to use it
+# tensorflow>=2.15
+# Optional, for the Streamlit dashboard
+streamlit>=1.30

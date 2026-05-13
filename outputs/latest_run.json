@@ -1,0 +1,38 @@
+{
+  "run_time_utc": "2026-05-13T06:45:39.183798+00:00",
+  "latest_observation": "2026-05-02T00:00:00",
+  "latest_value": 1.75442,
+  "horizon_weeks": 12,
+  "n_obs": 852,
+  "sarima_order": [
+    2,
+    1,
+    1
+  ],
+  "sarima_seasonal_order": [
+    0,
+    1,
+    1,
+    52
+  ],
+  "metrics": [
+    {
+      "model": "SARIMA",
+      "horizon": 12,
+      "n_folds": 3,
+      "mae": 0.5455,
+      "rmse": 0.7975,
+      "mape": 17.73,
+      "coverage_95": 94.44
+    },
+    {
+      "model": "Prophet",
+      "horizon": 12,
+      "n_folds": 3,
+      "mae": 0.8768,
+      "rmse": 0.9613,
+      "mape": 31.71,
+      "coverage_95": 94.44
+    }
+  ]
+}
