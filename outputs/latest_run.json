@@ -1,5 +1,5 @@
 {
-  "run_time_utc": "2026-06-05T23:17:49.595597+00:00",
+  "run_time_utc": "2026-06-12T23:26:08.054908+00:00",
   "latest_observation": "2026-05-02T00:00:00",
   "latest_value": 1.75442,
   "horizon_weeks": 12,
@@ -32,7 +32,7 @@
       "mae": 0.8768,
       "rmse": 0.9613,
       "mape": 31.71,
-      "coverage_95": 97.22
+      "coverage_95": 91.67
     }
   ]
 }
