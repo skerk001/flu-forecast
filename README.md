@@ -109,7 +109,10 @@ CDC's Friday morning ILINet release. It:
 2. Commits updates back to `data/` and `outputs/`
 3. Deploys `outputs/plots/forecast.html` to GitHub Pages as `index.html`
 
-To enable GitHub Pages: **Settings → Pages → Source: GitHub Actions**.
+The workflow self-provisions GitHub Pages via `actions/configure-pages` with
+`enablement: true`, so the first run sets the Pages source to **GitHub Actions**
+automatically — no manual **Settings → Pages** step required. A `concurrency`
+group ensures scheduled and manual runs never race for the same deployment.
 
 You can also trigger the workflow manually from the Actions tab.
 

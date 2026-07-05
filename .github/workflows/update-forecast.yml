@@ -17,6 +17,14 @@ permissions:
   pages: write
   id-token: write
 
+# Only one Pages deployment at a time. Without this, a scheduled run and a
+# manual/push run can create competing deployments, which surfaces as
+# "Deployment failed, try again later." Don't cancel in-progress runs — we
+# want the forecast commit to finish rather than be interrupted mid-push.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   forecast:
     runs-on: ubuntu-latest
@@ -51,8 +59,21 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "chore: weekly forecast update $(date -u +%Y-%m-%d)"
+            # Another run may have pushed in the meantime; rebase before pushing.
+            git pull --rebase --autostash origin main || true
             git push
           fi
+
+      # Enable GitHub Pages and set its build source to "GitHub Actions" via the
+      # API. This is what fixes the deploy errors: a 404 at deployment-create
+      # time ("Ensure GitHub Pages has been enabled") and the "Deployment
+      # failed, try again later" polling error both stem from Pages not being
+      # configured for Actions-based builds. `enablement: true` makes the
+      # workflow self-provisioning instead of relying on a manual Settings step.
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Prepare site/ for GitHub Pages
         run: |
@@ -61,6 +82,9 @@ jobs:
           cp outputs/plots/forecast.png site/ || true
           cp outputs/plots/decomposition.png site/ || true
           cp outputs/latest_run.json site/ || true
+          # Tell Pages to serve files as-is (no Jekyll processing). Plotly
+          # output and any underscore-prefixed files would otherwise be dropped.
+          touch site/.nojekyll
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

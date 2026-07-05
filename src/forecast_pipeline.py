@@ -120,9 +120,8 @@ def save_static_plot(series: pd.Series, forecasts: dict, out_path: Path) -> None
     plt.close()
 
 
-def save_interactive_plot(series: pd.Series, forecasts: dict, out_path: Path,
-                          metrics: list[dict]) -> None:
-    """Plotly HTML — can be embedded in GitHub Pages."""
+def build_forecast_figure(series: pd.Series, forecasts: dict) -> go.Figure:
+    """Interactive Plotly figure of history + each model's forecast."""
     fig = go.Figure()
 
     history = series.iloc[-260:]  # last 5 years
@@ -147,24 +146,140 @@ def save_interactive_plot(series: pd.Series, forecasts: dict, out_path: Path,
             line=dict(color=c, width=3),
         ))
 
-    metric_text = "<br>".join(
-        f"<b>{m['model']}</b>: MAE={m['mae']:.3f}, RMSE={m['rmse']:.3f}, "
-        f"MAPE={m['mape']:.1f}%, 95% coverage={m['coverage_95']:.0f}%"
-        for m in metrics
-    )
-
     fig.update_layout(
-        title=dict(
-            text=f"CDC FluView ILI Forecast — generated {datetime.now(timezone.utc):%Y-%m-%d}<br>"
-                 f"<sub>{metric_text}</sub>",
-            x=0.01, xanchor="left",
-        ),
         xaxis_title="Date", yaxis_title="% ILI visits",
         hovermode="x unified", template="plotly_white",
-        height=600,
+        height=600, margin=dict(t=30, r=20, b=40, l=60),
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0),
     )
+    return fig
+
+
+def _metric_cards_html(metrics: list[dict]) -> str:
+    """Render the per-model CV metrics as a small responsive card grid."""
+    cards = []
+    for m in metrics:
+        cards.append(
+            f'<div class="card">'
+            f'<h3>{m["model"]}</h3>'
+            f'<dl>'
+            f'<div><dt>MAE</dt><dd>{m["mae"]:.3f}</dd></div>'
+            f'<div><dt>RMSE</dt><dd>{m["rmse"]:.3f}</dd></div>'
+            f'<div><dt>MAPE</dt><dd>{m["mape"]:.1f}%</dd></div>'
+            f'<div><dt>95% coverage</dt><dd>{m["coverage_95"]:.0f}%</dd></div>'
+            f'</dl></div>'
+        )
+    return "\n".join(cards)
+
+
+def save_interactive_plot(series: pd.Series, forecasts: dict, out_path: Path,
+                          metrics: list[dict]) -> None:
+    """Styled, self-contained landing page for GitHub Pages.
+
+    Wraps the interactive Plotly chart in a lightweight HTML shell with a
+    header, model-performance cards, and a data footer so the deployed page
+    reads as a real dashboard rather than a bare chart.
+    """
+    fig = build_forecast_figure(series, forecasts)
+    chart_html = fig.to_html(full_html=False, include_plotlyjs="cdn",
+                             config={"displayModeBar": False, "responsive": True})
+
+    generated = datetime.now(timezone.utc)
+    latest_obs = series.index[-1].date()
+    latest_val = float(series.iloc[-1])
+    horizon_end = forecasts["SARIMA"].index[-1].date()
+
+    page = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CDC FluView ILI Forecast</title>
+<style>
+  :root {{ color-scheme: light dark; }}
+  * {{ box-sizing: border-box; }}
+  body {{
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif; line-height: 1.5;
+    color: #1a1a1a; background: #f7f8fa;
+  }}
+  header {{
+    padding: 2rem 1.25rem 1rem; max-width: 1100px; margin: 0 auto;
+  }}
+  header h1 {{ margin: 0 0 .25rem; font-size: 1.6rem; }}
+  header p {{ margin: 0; color: #555; }}
+  main {{ max-width: 1100px; margin: 0 auto; padding: 0 1.25rem 3rem; }}
+  .summary {{
+    display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0 1.5rem;
+  }}
+  .stat {{
+    background: #fff; border: 1px solid #e6e8eb; border-radius: 10px;
+    padding: .75rem 1rem; min-width: 150px;
+  }}
+  .stat .label {{ font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .04em; color: #777; }}
+  .stat .value {{ font-size: 1.35rem; font-weight: 600; }}
+  .chart {{
+    background: #fff; border: 1px solid #e6e8eb; border-radius: 12px;
+    padding: .5rem; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }}
+  h2 {{ font-size: 1.1rem; margin: 2rem 0 .75rem; }}
+  .cards {{ display: grid; gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }}
+  .card {{ background: #fff; border: 1px solid #e6e8eb; border-radius: 12px;
+    padding: 1rem 1.25rem; }}
+  .card h3 {{ margin: 0 0 .5rem; }}
+  .card dl {{ margin: 0; display: grid; grid-template-columns: 1fr auto;
+    gap: .3rem 1rem; }}
+  .card dl div {{ display: contents; }}
+  .card dt {{ color: #666; }}
+  .card dd {{ margin: 0; font-variant-numeric: tabular-nums; font-weight: 600;
+    text-align: right; }}
+  footer {{ max-width: 1100px; margin: 0 auto; padding: 1rem 1.25rem 3rem;
+    color: #777; font-size: .85rem; }}
+  footer a {{ color: #1f77b4; }}
+  @media (prefers-color-scheme: dark) {{
+    body {{ color: #e6e6e6; background: #14171a; }}
+    header p, .stat .label, .card dt, footer {{ color: #9aa0a6; }}
+    .stat, .chart, .card {{ background: #1e2226; border-color: #2b3036; }}
+  }}
+</style>
+</head>
+<body>
+<header>
+  <h1>🤒 CDC FluView ILI Forecast</h1>
+  <p>Weekly influenza-like illness (%ILI) for the United States, forecast with
+     SARIMA and Prophet. Data: CDC FluView (ILINet) via the Delphi Epidata API.</p>
+</header>
+<main>
+  <div class="summary">
+    <div class="stat"><div class="label">Latest week</div>
+      <div class="value">{latest_obs}</div></div>
+    <div class="stat"><div class="label">Latest %ILI</div>
+      <div class="value">{latest_val:.2f}</div></div>
+    <div class="stat"><div class="label">Forecast through</div>
+      <div class="value">{horizon_end}</div></div>
+    <div class="stat"><div class="label">Horizon</div>
+      <div class="value">{HORIZON} weeks</div></div>
+  </div>
+
+  <div class="chart">{chart_html}</div>
+
+  <h2>Model performance (walk-forward CV)</h2>
+  <div class="cards">
+    {_metric_cards_html(metrics)}
+  </div>
+</main>
+<footer>
+  Generated {generated:%Y-%m-%d %H:%M} UTC ·
+  <a href="https://github.com/skerk001/flu-forecast">source on GitHub</a> ·
+  ILI counts symptoms, not confirmed influenza — see the repo README for caveats.
+</footer>
+</body>
+</html>"""
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.write_html(out_path, include_plotlyjs="cdn")
+    out_path.write_text(page, encoding="utf-8")
 
 
 def run() -> None:
