@@ -10,7 +10,7 @@ Docs: https://cmu-delphi.github.io/delphi-epidata/api/fluview.html
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -60,7 +60,7 @@ def fetch_fluview(
         date, epiweek, region, ili, wili, num_ili, num_patients, num_providers
     """
     if end_epiweek is None:
-        end_epiweek = date_to_epiweek(datetime.utcnow())
+        end_epiweek = date_to_epiweek(datetime.now(timezone.utc))
 
     params = {
         "regions": region,
@@ -99,7 +99,7 @@ def load_or_fetch(path: Path, max_age_days: int = 7, **kwargs) -> pd.DataFrame:
     on Fridays, so a 7-day cache is reasonable for local development.
     """
     if path.exists():
-        age_days = (datetime.utcnow().timestamp() - path.stat().st_mtime) / 86400
+        age_days = (datetime.now(timezone.utc).timestamp() - path.stat().st_mtime) / 86400
         if age_days < max_age_days:
             logger.info("Using cached data (%.1f days old)", age_days)
             return pd.read_csv(path, parse_dates=["date"])
