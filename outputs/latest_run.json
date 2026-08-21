@@ -1,5 +1,5 @@
 {
-  "run_time_utc": "2026-08-14T22:30:45.024617+00:00",
+  "run_time_utc": "2026-08-21T22:32:17.438406+00:00",
   "latest_observation": "2026-05-02T00:00:00",
   "latest_value": 1.75442,
   "horizon_weeks": 12,
@@ -29,10 +29,10 @@
       "model": "Prophet",
       "horizon": 12,
       "n_folds": 3,
-      "mae": 0.8768,
-      "rmse": 0.9613,
-      "mape": 31.71,
-      "coverage_95": 100.0
+      "mae": 0.8765,
+      "rmse": 0.9616,
+      "mape": 31.64,
+      "coverage_95": 91.67
     }
   ]
 }
